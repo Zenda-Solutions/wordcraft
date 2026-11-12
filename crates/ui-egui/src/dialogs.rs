@@ -2721,9 +2721,16 @@ fn body(app: &mut WordApp, ui: &mut Ui, d: &mut Dialog) -> bool {
                     ui.label(egui::RichText::new(tl!("WordCraft")).font(semibold(22.0)));
                     let build = option_env!("WORDCRAFT_BUILD_SHA").map(|s| s.get(..8).unwrap_or(s)).unwrap_or(tl!("development build"));
                     ui.label(crate::i18n::fmt(tl!("Version {version} ({build})"), &[("version", env!("CARGO_PKG_VERSION")), ("build", build)]));
-                    ui.label(tl!(
-                        "A free, open-source word processor written from scratch in Rust.\nPart of the Crafting Apps from the ArtCraft team."
-                    ));
+                    // Zenda's build: a modified version is never presented as an ArtCraft product
+                    // (docs/brand/LICENSE-brand.txt); the plain-text attribution stays (zenda-brand).
+                    if crate::zenda::ON {
+                        ui.label(tl!("Zenda's build for Work, based on WordCraft by the ArtCraft team.\nA free, open-source word processor written in Rust."));
+                        ui.hyperlink_to(tl!("Zenda's changes: github.com/Zenda-Solutions/wordcraft"), "https://github.com/Zenda-Solutions/wordcraft");
+                    } else {
+                        ui.label(tl!(
+                            "A free, open-source word processor written from scratch in Rust.\nPart of the Crafting Apps from the ArtCraft team."
+                        ));
+                    }
                     ui.add_space(6.0);
                     ui.hyperlink_to(tl!("getartcraft.com/apps/wordcraft"), "https://getartcraft.com/apps/wordcraft");
                     if !crate::zenda::ON {

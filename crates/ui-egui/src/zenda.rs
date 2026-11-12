@@ -13,6 +13,7 @@
 //! | `zenda-strip` | No Discord button, menu entry, keytip or link; no community line in MCP. |
 //! | `zenda-theo-button` | A «Theo» button in the title bar: queues `work.theo {context}`. |
 //! | `zenda-share` | The Share button queues `work.share {path, dirty, name}` instead of opening Export. |
+//! | `zenda-brand` | About says it is Zenda's build based on WordCraft by the ArtCraft team, never an ArtCraft product. |
 
 use serde_json::{Value, json};
 
