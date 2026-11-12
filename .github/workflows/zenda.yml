@@ -1,6 +1,6 @@
 # Zenda's build for Work: tests the zenda patches and packs the portable zip as a workflow artifact.
-# Publishing goes to the dash (dash.zenda.group/zwork/descargas/wordcraft-<version>-z<n>/), never
-# to a GitHub release.
+# A tag `zenda-v<version>-z<n>` (for example zenda-v0.11.0-z1) also publishes the zip as a GitHub
+# release of this public fork; Work's manifest downloads it from there, like upstream's releases.
 name: Zenda
 
 on:
@@ -15,7 +15,7 @@ on:
         default: "1"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows:
@@ -45,9 +45,21 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          $z = if ('${{ inputs.z }}') { '${{ inputs.z }}' } else { '1' }
+          $z = if ('${{ inputs.z }}') { '${{ inputs.z }}' }
+               elseif ($env:GITHUB_REF_NAME -match '^zenda-v.+-z(\d+)$') { $Matches[1] }
+               else { '1' }
           pwsh zenda/package.ps1 -Z $z
       - uses: actions/upload-artifact@v4
         with:
           name: wordcraft-zenda-portable
           path: dist/zenda/*.zip
+      - name: Release (zenda-v* tags)
+        if: startsWith(github.ref, 'refs/tags/zenda-v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zip = Get-ChildItem dist/zenda/*.zip | Select-Object -First 1
+          $sha = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          $notes = "Zenda's WordCraft build for Work. size: $($zip.Length) sha256: $sha"
+          gh release create $env:GITHUB_REF_NAME $zip.FullName --title $env:GITHUB_REF_NAME --notes $notes
