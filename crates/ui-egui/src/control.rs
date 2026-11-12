@@ -161,6 +161,8 @@ pub fn handle(app: &mut WordApp, ctx: &egui::Context, req: &ControlRequest) -> O
             Ok(v) => ok(v),
             Err(e) => err(e),
         },
+        // Zenda's build: Work drains what the person asked of it (`zenda.rs`).
+        "work.events" if crate::zenda::ON => ok(json!({"events": app.zenda.drain()})),
         "ui.inspect" => ok(inspect(app, ctx)),
         "ui.parity" => ok(wordcraft_engine::catalog::parity(&app.session.registry)),
         "ui.click" => {

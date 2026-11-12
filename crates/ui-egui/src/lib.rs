@@ -88,6 +88,7 @@ pub mod window_close;
 pub mod window_geometry;
 pub mod wordart_menus;
 pub mod zotero;
+pub mod zenda;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -569,6 +570,8 @@ pub struct WordApp {
     /// Focus (#1678): the ribbon is dropped down from the Focus bar, over the page.
     pub(crate) focus_ribbon: bool,
     control_rx: Option<std::sync::mpsc::Receiver<ControlRequest>>,
+    /// Zenda's build: what the person asked of Work, until Work drains it (`work.events`).
+    pub zenda: zenda::Outbox,
     shot_token: u64,
     queued_shots: Vec<(u64, f64, u32)>,
     pending_shots: Vec<(u64, Option<String>, std::sync::mpsc::Sender<Value>, f64)>,
@@ -719,6 +722,7 @@ impl WordApp {
             mac_titlebar: chrome::MacTitleBar::default(),
             focus_ribbon: false,
             control_rx: None,
+            zenda: Default::default(),
             shot_token: 0,
             queued_shots: Vec::new(),
             pending_shots: Vec::new(),

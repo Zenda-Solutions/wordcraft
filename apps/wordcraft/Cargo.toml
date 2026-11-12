@@ -10,6 +10,10 @@ description = "WordCraft desktop app"
 [lints]
 workspace = true
 
+[features]
+# Zenda's build for Work (crates/ui-egui/src/zenda.rs).
+zenda = ["wordcraft-ui-egui/zenda"]
+
 [dependencies]
 wordcraft-doc = { workspace = true }
 wordcraft-engine = { workspace = true }
