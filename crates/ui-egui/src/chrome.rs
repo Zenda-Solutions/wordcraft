@@ -373,12 +373,7 @@ pub fn title_bar(app: &mut WordApp, ui: &mut Ui) {
                     }
                     // Zenda's build: the Theo button (zenda-theo-button). Work arranges the windows and opens Theo.
                     if crate::zenda::ON {
-                        let (r, resp) = ui.allocate_exact_size(vec2(64.0, 22.0), Sense::click());
-                        ui.painter().rect_filled(r, 11.0, if resp.hovered() { t.accent_text } else { t.accent });
-                        ui.painter().circle_filled(pos2(r.min.x + 12.0, r.center().y), 6.0, t.on_accent);
-                        ui.painter().text(pos2(r.min.x + 22.0, r.center().y), Align2::LEFT_CENTER, "Theo", medium(11.5), t.on_accent);
-                        resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, tl!("Ask Theo for help")));
-                        if resp.on_hover_text(tl!("Ask Theo about what is on screen")).clicked() {
+                        if crate::zenda::theo_button(ui, &tl!("Ask Theo for help"), &tl!("Ask Theo about what is on screen")).clicked() {
                             let context = crate::zenda::theo_context(app);
                             app.zenda.push("work.theo", context);
                         }

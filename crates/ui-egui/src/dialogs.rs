@@ -2724,7 +2724,9 @@ fn body(app: &mut WordApp, ui: &mut Ui, d: &mut Dialog) -> bool {
                     // Zenda's build: a modified version is never presented as an ArtCraft product
                     // (docs/brand/LICENSE-brand.txt); the plain-text attribution stays (zenda-brand).
                     if crate::zenda::ON {
-                        ui.label(tl!("Zenda's build for Work, based on WordCraft by the ArtCraft team.\nA free, open-source word processor written in Rust."));
+                        ui.label(tl!(
+                            "Zenda's build for Work, based on WordCraft by the ArtCraft team.\nA free, open-source word processor written in Rust."
+                        ));
                         ui.hyperlink_to(tl!("Zenda's changes: github.com/Zenda-Solutions/wordcraft"), "https://github.com/Zenda-Solutions/wordcraft");
                     } else {
                         ui.label(tl!(

@@ -87,8 +87,8 @@ pub mod widgets;
 pub mod window_close;
 pub mod window_geometry;
 pub mod wordart_menus;
-pub mod zotero;
 pub mod zenda;
+pub mod zotero;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};

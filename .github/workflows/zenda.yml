@@ -40,8 +40,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Zenda patch tests (both builds)
         run: |
-          cargo test -p wordcraft-ui-egui --lib zenda::
-          cargo test -p wordcraft-ui-egui --lib --features zenda zenda::
+          cargo test --config 'profile.dev.package.wordcraft-ui-egui.opt-level=0' -p wordcraft-ui-egui --lib zenda::
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          cargo test --config 'profile.dev.package.wordcraft-ui-egui.opt-level=0' -p wordcraft-ui-egui --lib --features zenda zenda::
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Package
         shell: pwsh
         run: |

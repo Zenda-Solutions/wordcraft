@@ -69,8 +69,30 @@ pub fn theo_context(app: &crate::WordApp) -> Value {
 /// saved, and `dirty` says the file on disk is behind the window; Work asks to save first.
 pub fn share_params(app: &crate::WordApp) -> Value {
     let path = app.session.path.as_ref().map(|p| p.to_string_lossy().to_string());
-    let name = app.session.path.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().to_string()).or_else(|| app.session.file_name.clone());
+    let name =
+        app.session.path.as_ref().and_then(|p| p.file_name()).map(|n| n.to_string_lossy().to_string()).or_else(|| app.session.file_name.clone());
     json!({"path": path, "dirty": app.session.dirty, "name": name})
+}
+
+/// Work's mascot and orange brand button, shared by the curated app patches.
+pub fn theo_button(ui: &mut egui::Ui, label: &str, hint: &str) -> egui::Response {
+    let key = egui::Id::new("zenda.theo.texture");
+    let texture = ui.ctx().data_mut(|d| d.get_temp::<egui::TextureHandle>(key)).or_else(|| {
+        let image = image::load_from_memory(include_bytes!("../../../assets/zenda/theo-icon-64.png")).ok()?.to_rgba8();
+        let color = egui::ColorImage::from_rgba_unmultiplied([image.width() as usize, image.height() as usize], image.as_raw());
+        let texture = ui.ctx().load_texture("Theo mascot", color, egui::TextureOptions::LINEAR);
+        ui.ctx().data_mut(|d| d.insert_temp(key, texture.clone()));
+        Some(texture)
+    });
+    let text = egui::RichText::new("Theo").color(egui::Color32::BLACK).size(11.5);
+    let button = if let Some(texture) = texture {
+        egui::Button::image_and_text(egui::Image::new((texture.id(), egui::vec2(18.0, 18.0))), text)
+    } else {
+        egui::Button::new(text)
+    };
+    let response = ui.add(button.fill(egui::Color32::from_rgb(234, 108, 30)).corner_radius(11.0).min_size(egui::vec2(74.0, 24.0)));
+    response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, label));
+    response.on_hover_text(hint)
 }
 
 #[cfg(test)]
@@ -168,5 +190,14 @@ mod tests {
         let got = o.drain();
         assert_eq!(got.len(), OUTBOX_MAX);
         assert_eq!(got[0]["seq"], 6);
+    }
+    #[test]
+    fn theo_mascot_preview() {
+        let Some(path) = std::env::var_os("ZENDA_THEO_PREVIEW") else { return };
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(160.0, 50.0)).with_pixels_per_point(3.0).wgpu().build_ui(|ui| {
+            let _ = theo_button(ui, "Ask Theo for help", "Theo");
+        });
+        h.run_steps(2);
+        h.render().unwrap().save(path).unwrap();
     }
 }
