@@ -107,6 +107,13 @@ mod tests {
     }
 
     #[test]
+    fn the_zenda_build_opens_no_community_link() {
+        let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::new()), crate::Services::default());
+        let _ = app.run("ui.discord", json!({}));
+        assert_eq!(app.canvas.open_url.is_some(), !ON, "zenda-strip: ui.discord opens nothing in Work");
+    }
+
+    #[test]
     fn the_outbox_keeps_only_the_newest_events() {
         let mut o = Outbox::default();
         for _ in 0..(OUTBOX_MAX + 5) {

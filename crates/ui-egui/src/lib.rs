@@ -1815,7 +1815,10 @@ impl WordApp {
                 ));
             }
             "ui.discord" => {
-                self.canvas.open_url = Some("https://discord.gg/artcraft".into());
+                // Zenda's build opens no community link (zenda-strip).
+                if !crate::zenda::ON {
+                    self.canvas.open_url = Some("https://discord.gg/artcraft".into());
+                }
                 json!({})
             }
             "ui.caretAnimation" => {
