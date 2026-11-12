@@ -29,6 +29,12 @@ New-Item -ItemType Directory -Force -Path $Stage | Out-Null
 Copy-Item (Join-Path $Target 'release\wordcraft.exe'), (Join-Path $Target 'release\wordcraft-cli.exe') $Stage
 foreach ($f in 'LICENSE-APACHE', 'LICENSE-MIT', 'NOTICE', 'ATTRIBUTION.md') { Copy-Item (Join-Path $Root $f) $Stage }
 foreach ($ofl in Get-ChildItem (Join-Path $Root 'assets\fonts') -Filter 'OFL-*.txt') { Copy-Item $ofl.FullName $Stage }
+# Builds made with craft-fonts embed its fonts: ship their licences, as upstream's package.ps1 does.
+if ($env:CRAFT_FONTS_DIR) {
+  foreach ($ofl in Get-ChildItem -Path (Join-Path $env:CRAFT_FONTS_DIR 'fonts\*\OFL.txt') -ErrorAction SilentlyContinue) {
+    Copy-Item $ofl.FullName (Join-Path $Stage "OFL-$($ofl.Directory.Name).txt")
+  }
+}
 $Zip = Join-Path $Dist "wordcraft-$Version-z$Z-windows-x64-portable.zip"
 Compress-Archive -Path $Stage -DestinationPath $Zip
 $item = Get-Item $Zip

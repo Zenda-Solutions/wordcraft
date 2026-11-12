@@ -30,6 +30,12 @@ jobs:
           git -C ..\craft-i18n checkout $rev
           pwsh zenda/i18n.ps1 -CraftI18n ..\craft-i18n
           "CRAFT_I18N_DIR=$((Resolve-Path ..\craft-i18n).Path)" >> $env:GITHUB_ENV
+      - name: craft-fonts as of the v0.11.0 release (the official zip embeds them)
+        shell: pwsh
+        run: |
+          git clone --filter=blob:none https://github.com/storytold/craft-fonts ..\craft-fonts
+          git -C ..\craft-fonts checkout (Get-Content zenda/craft-fonts.rev).Trim()
+          "CRAFT_FONTS_DIR=$((Resolve-Path ..\craft-fonts).Path)" >> $env:GITHUB_ENV
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Zenda patch tests (both builds)
