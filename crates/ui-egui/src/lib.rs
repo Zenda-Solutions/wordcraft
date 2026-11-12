@@ -914,6 +914,13 @@ impl WordApp {
         // part of it: saving and exporting go on without it (the refusal stays on the status
         // line), and replacing the document asks Save / Don't Save / Cancel about it.
         let refused = if flushes_comment_drafts(id, &params) { panes::flush_comment_drafts(self).err() } else { None };
+        // Zenda's build: Share hands the saved file to Work, which sends it to a Work user, a group
+        // or an email (zenda-share). Accounts never live in the app.
+        if crate::zenda::ON && id == "file.share" {
+            let params = zenda::share_params(self);
+            self.zenda.push("work.share", params);
+            return Ok(json!({"work": "share"}));
+        }
         if id == "file.recover" && params.as_object().is_none_or(|p| p.is_empty()) {
             self.ui.backstage = true;
             self.ui.backstage_page = "recover".into();

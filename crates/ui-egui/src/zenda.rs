@@ -140,6 +140,25 @@ mod tests {
     }
 
     #[test]
+    fn share_hands_the_saved_file_to_work_in_the_zenda_build() {
+        let mut app = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Hola")), crate::Services::default());
+        app.session.path = Some(std::path::PathBuf::from("C:/Docs/Z Work/carta.docx"));
+        app.session.dirty = false;
+        let reply = app.run("file.share", json!({})).unwrap();
+        let events = app.zenda.drain();
+        if !ON {
+            assert!(events.is_empty(), "the stock build keeps its own Share");
+            return;
+        }
+        assert_eq!(reply["work"], "share");
+        assert_eq!(events.len(), 1);
+        assert_eq!(events[0]["event"], "work.share");
+        assert_eq!(events[0]["params"]["path"], "C:/Docs/Z Work/carta.docx");
+        assert_eq!(events[0]["params"]["name"], "carta.docx");
+        assert_eq!(events[0]["params"]["dirty"], false);
+    }
+
+    #[test]
     fn the_outbox_keeps_only_the_newest_events() {
         let mut o = Outbox::default();
         for _ in 0..(OUTBOX_MAX + 5) {

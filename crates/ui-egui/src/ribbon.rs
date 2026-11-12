@@ -367,7 +367,12 @@ pub fn show(app: &mut WordApp, ui: &mut Ui) {
                             ui.painter().text(pos2(r.min.x + 26.0, r.center().y), Align2::LEFT_CENTER, share, medium(12.0), t.on_accent);
                         }
                         resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, share));
-                        if resp.on_hover_text(tl!("Export a copy to share (PDF, Word document)")).clicked() {
+                        let hint = if crate::zenda::ON { tl!("Send it to someone in Work, a group or an email") } else { tl!("Export a copy to share (PDF, Word document)") };
+                        let clicked = resp.on_hover_text(hint).clicked();
+                        // Zenda's build: Work sends it (zenda-share).
+                        if clicked && crate::zenda::ON {
+                            let _ = app.run("file.share", json!({}));
+                        } else if clicked {
                             let _ = app.run("ui.backstage", json!({"value": true, "page": "export"}));
                         }
                         ui.add_space(6.0);
