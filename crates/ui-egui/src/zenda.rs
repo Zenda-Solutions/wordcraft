@@ -114,6 +114,32 @@ mod tests {
     }
 
     #[test]
+    fn the_theo_button_queues_work_theo_in_the_zenda_build_only() {
+        use egui_kittest::kittest::Queryable;
+        let a = crate::WordApp::new(wordcraft_engine::Session::new(wordcraft_doc::Document::from_text("Hola")), crate::Services::default());
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(1440.0, 900.0)).build_ui_state(
+            |ui, app: &mut crate::WordApp| {
+                let ctx = ui.ctx().clone();
+                app.logic(&ctx);
+                app.ui(ui);
+            },
+            a,
+        );
+        h.run_steps(4);
+        if !ON {
+            assert!(h.query_by_label("Ask Theo for help").is_none(), "the stock build has no Theo button");
+            return;
+        }
+        h.get_by_label("Ask Theo for help").click();
+        h.run_steps(2);
+        let events = h.state_mut().zenda.drain();
+        assert_eq!(events.len(), 1, "{events:?}");
+        assert_eq!(events[0]["event"], "work.theo");
+        assert_eq!(events[0]["params"]["from"], "button");
+        assert_eq!(events[0]["params"]["hasDocument"], true);
+    }
+
+    #[test]
     fn the_outbox_keeps_only_the_newest_events() {
         let mut o = Outbox::default();
         for _ in 0..(OUTBOX_MAX + 5) {
