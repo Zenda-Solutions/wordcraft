@@ -1,0 +1,50 @@
+# Zenda overlay for WordCraft (pt-br): rows the pinned craft-i18n catalog lacks, and Zenda's patch strings.
+# Columns, separated by a TAB: context <TAB> English source text <TAB> translation. Appended to
+# craft-i18n's locales/<locale>/wordcraft.tsv before the build (zenda/i18n.ps1).
+	*Bold* and _italic_ as real formatting	*Negrito* e _itálico_ com formatação real
+	Automatically add words to list (First Letter)	Adicionar palavras à lista automaticamente (Primeira letra)
+	Automatically add words to list (INitial CAps)	Adicionar palavras à lista automaticamente (DUas MAiúsculas)
+	Bookmarks	Indicadores
+	Built-in Heading styles	Estilos de título internos
+	Continue without restoring	Continuar sem restaurar
+	Couldn't save {name}, so it is still open and nothing was lost: {error}	Não foi possível salvar {name}; ele continua aberto e nada foi perdido: {error}
+	Crop on the page works on unturned pictures: set Rotation to 0° first, or use the crop boxes	Cortar na página funciona com imagens sem rotação: defina a rotação como 0° primeiro ou use as caixas de corte
+	Current Document	Documento atual
+	Discard the recovery copy of {name}?	Descartar a cópia de recuperação de {name}?
+	Discard…	Descartar…
+	Enter bookmark name:	Nome do indicador:
+	Find “{text}” in the document	Localizar “{text}” no documento
+	For which item:	Para qual item:
+	Imported 1 source	1 fonte importada
+	Imported {n} sources	{n} fontes importadas
+	Insert reference to:	Inserir referência para:
+	Local recovery is unavailable or still loading.	A recuperação local não está disponível ou ainda está carregando.
+	No items to show.	Não há itens para mostrar.
+	No new sources in that file	Não há fontes novas nesse arquivo
+	No recovery copies.	Não há cópias de recuperação.
+	Nothing of this type in the document.	Não há nada deste tipo no documento.
+	Page color	Cor da página
+	Recovery copy	Cópia de recuperação
+	Recovery is disabled while this document has a password.	A recuperação fica desativada enquanto este documento tiver senha.
+	Reference type:	Tipo de referência:
+	Restore opens an unsaved copy. Your original file stays unchanged.	Restaurar abre uma cópia não salva. O arquivo original não é alterado.
+	Scale to paper size	Ajustar ao tamanho do papel
+	Select a place in this document:	Selecione um local neste documento:
+	Set left- and first-indent with tabs and backspaces	Definir recuo à esquerda e da primeira linha com tabulações e Backspace
+	Spanish (Latin America)	Espanhol (América Latina)
+	Spanish (Uruguay)	Espanhol (Uruguai)
+	The number must be a divisor of {max}.	O número deve ser um divisor de {max}.
+	The spelling dictionary for {language} couldn't be read, so it isn't checked. File: {file}. Reason: {reason}	Não foi possível ler o dicionário de {language}, então a ortografia não é verificada. Arquivo: {file}. Motivo: {reason}
+	This cannot be undone. Your original file stays unchanged.	Isso não pode ser desfeito. O arquivo original não é alterado.
+	Top of the Document	Início do documento
+	Type a page number, or +2 / -1.	Digite um número de página, ou +2 / -1.
+	Type the field's name and its switches, for example PAGE \\* roman.	Digite o nome do campo e suas opções, por exemplo PAGE \\* roman.
+	Wait for the print job to finish submitting before closing.	Aguarde o envio do trabalho de impressão terminar antes de fechar.
+	{language} (dictionary unreadable)	{language} (dicionário ilegível)
+	{language}: {file} (unreadable: {reason})	{language}: {file} (ilegível: {reason})
+	{name} options	Opções de {name}
+	{paper}   {width} × {height}	{paper}   {width} × {height}
+	Body text in a short paragraph to show spacing.	Texto do corpo em um parágrafo curto para mostrar o espaçamento.
+	Ask Theo for help	Peça ajuda ao Theo
+	Ask Theo about what is on screen	Pergunte ao Theo sobre o que está na tela
+	Send it to someone in Work, a group or an email	Envie para alguém do Work, um grupo ou um e-mail
