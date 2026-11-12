@@ -1,0 +1,47 @@
+# Zenda's build for Work: tests the zenda patches and packs the portable zip as a workflow artifact.
+# Publishing goes to the dash (dash.zenda.group/zwork/descargas/wordcraft-<version>-z<n>/), never
+# to a GitHub release.
+name: Zenda
+
+on:
+  push:
+    branches: ['zenda/**']
+    tags: ['zenda-*']
+  workflow_dispatch:
+    inputs:
+      z:
+        description: "Zenda build number (the n in -z<n>)"
+        type: string
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: craft-i18n at the pinned rev, with Zenda's rows
+        shell: pwsh
+        run: |
+          $rev = (Get-Content craft-i18n.rev).Trim()
+          git clone https://github.com/storytold/craft-i18n ..\craft-i18n
+          git -C ..\craft-i18n checkout $rev
+          pwsh zenda/i18n.ps1 -CraftI18n ..\craft-i18n
+          "CRAFT_I18N_DIR=$((Resolve-Path ..\craft-i18n).Path)" >> $env:GITHUB_ENV
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Zenda patch tests (both builds)
+        run: |
+          cargo test -p wordcraft-ui-egui --lib zenda::
+          cargo test -p wordcraft-ui-egui --lib --features zenda zenda::
+      - name: Package
+        shell: pwsh
+        run: |
+          $z = if ('${{ inputs.z }}') { '${{ inputs.z }}' } else { '1' }
+          pwsh zenda/package.ps1 -Z $z
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wordcraft-zenda-portable
+          path: dist/zenda/*.zip
