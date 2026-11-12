@@ -7,6 +7,15 @@ The ArtCraft name, wordmark and logos in docs/brand/ are trademarks of the ArtCr
 not open source and are not covered by the license above; their terms are in
 docs/brand/LICENSE-brand.txt.
 
+Modifications by Zenda Solutions
+
+This is Zenda's build of WordCraft for Work (Zenda-Solutions/wordcraft, from storytold/wordcraft),
+made with ArtCraft. The changes are behind the `zenda` cargo feature (crates/ui-egui/src/zenda.rs)
+and listed there: no Discord or community links (zenda-strip), a Theo button that asks Work for
+help (zenda-theo-button), Share hands the saved file to Work (zenda-share), and extra Spanish and
+Brazilian Portuguese interface rows (zenda/i18n). The document format is unchanged. Zenda's changes
+are offered under the same licenses as WordCraft (MIT OR Apache-2.0).
+
 Third-party material
 
 This product bundles third-party material under its own licenses, listed below. The per-file
