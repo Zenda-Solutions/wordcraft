@@ -38,7 +38,6 @@
 	This cannot be undone. Your original file stays unchanged.	No se puede deshacer. El archivo original no cambia.
 	Top of the Document	Principio del documento
 	Type a page number, or +2 / -1.	Escriba un número de página, o +2 / -1.
-	Type the field's name and its switches, for example PAGE \\* roman.	Escriba el nombre del campo y sus modificadores, por ejemplo PAGE \\* roman.
 	Wait for the print job to finish submitting before closing.	Espere a que termine de enviarse el trabajo de impresión antes de cerrar.
 	{language} (dictionary unreadable)	{language} (diccionario ilegible)
 	{language}: {file} (unreadable: {reason})	{language}: {file} (ilegible: {reason})

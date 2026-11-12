@@ -38,7 +38,6 @@
 	This cannot be undone. Your original file stays unchanged.	Isso não pode ser desfeito. O arquivo original não é alterado.
 	Top of the Document	Início do documento
 	Type a page number, or +2 / -1.	Digite um número de página, ou +2 / -1.
-	Type the field's name and its switches, for example PAGE \\* roman.	Digite o nome do campo e suas opções, por exemplo PAGE \\* roman.
 	Wait for the print job to finish submitting before closing.	Aguarde o envio do trabalho de impressão terminar antes de fechar.
 	{language} (dictionary unreadable)	{language} (dicionário ilegível)
 	{language}: {file} (unreadable: {reason})	{language}: {file} (ilegível: {reason})
