@@ -20,3 +20,42 @@ pub mod key;
 #[cfg(feature = "egui")]
 pub mod panel;
 pub mod store;
+
+use serde_json::Value;
+
+/// Where conversations are kept: `ZWORK_CHAT_DIR`, which Work points at the tool's profile, or the temp
+/// folder for a copy Work did not start.
+pub fn chat_dir() -> std::path::PathBuf {
+    std::env::var_os("ZWORK_CHAT_DIR").filter(|p| !p.is_empty()).map(std::path::PathBuf::from).unwrap_or_else(std::env::temp_dir)
+}
+
+/// The params of the control method `zenda.chat.key {llave, venceEn}`, checked: a `zck_` key and a life
+/// of one second to one day.
+pub fn key_params(p: &Value) -> Result<(String, u64), &'static str> {
+    let token = p.get("llave").and_then(Value::as_str).ok_or("missing llave")?;
+    let secs = p.get("venceEn").and_then(Value::as_u64).ok_or("missing venceEn")?;
+    if !token.starts_with("zck_") || token.len() > 200 || secs == 0 || secs > 24 * 3600 {
+        return Err("invalid chat key");
+    }
+    Ok((token.to_string(), secs))
+}
+
+/// A chat for `tool` (Work's manifest id) shown as `name`, talking to the dash over HTTPS.
+#[cfg(all(feature = "egui", feature = "http"))]
+pub fn new_chat(tool: &str, name: &str) -> panel::Chat {
+    panel::Chat::new(tool, name, std::sync::Arc::new(dash::Http), std::sync::Arc::new(dash::MonoClock::default()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn only_a_chat_key_with_a_sane_life_is_taken() {
+        assert_eq!(key_params(&json!({"llave": "zck_a", "venceEn": 3600})), Ok(("zck_a".to_string(), 3600)));
+        for bad in [json!({}), json!({"llave": "sk-model", "venceEn": 3600}), json!({"llave": "zck_a", "venceEn": 0}), json!({"llave": "zck_a", "venceEn": 999_999}), json!({"llave": "zck_a"})] {
+            assert!(key_params(&bad).is_err(), "{bad}");
+        }
+    }
+}

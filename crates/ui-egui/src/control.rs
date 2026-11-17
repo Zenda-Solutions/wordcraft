@@ -167,11 +167,11 @@ pub fn handle(app: &mut WordApp, ctx: &egui::Context, req: &ControlRequest) -> O
         // authenticated channel.
         #[cfg(feature = "zenda")]
         "zenda.chat.key" => {
-            let (Some(token), Some(secs)) = (s("llave"), p.get("venceEn").and_then(Value::as_u64)) else { return err("missing llave/venceEn") };
-            if !token.starts_with("zck_") || secs == 0 || secs > 24 * 3600 {
-                return err("invalid chat key");
-            }
-            crate::zenda_chat::offer_key(app, token, secs);
+            let (token, secs) = match zenda_theo::key_params(p) {
+                Ok(k) => k,
+                Err(e) => return err(e),
+            };
+            crate::zenda_chat::offer_key(app, &token, secs);
             ok(json!({}))
         }
         "ui.inspect" => ok(inspect(app, ctx)),

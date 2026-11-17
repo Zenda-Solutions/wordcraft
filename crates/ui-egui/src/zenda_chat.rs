@@ -10,8 +10,7 @@
 //! `WordApp::execute` on the commands below. Deleting or replacing the person's text waits for their OK.
 
 use serde_json::{Value, json};
-use std::sync::Arc;
-use zenda_theo::panel::{Chat, Host};
+use zenda_theo::panel::Host;
 
 /// Theo's instructions in Texto, for answering and doing small edits from the chat.
 const SKILL: &str = "Sos Theo, el compañero de Zenda Work, dentro de Texto (un procesador de textos como Word). \
@@ -108,8 +107,11 @@ impl Host for TextoHost<'_> {
     }
 }
 
-/// Where Texto keeps its settings (Work points it at the person's profile).
+/// Where Texto keeps its conversations: Work's `ZWORK_CHAT_DIR`, else Texto's settings folder.
 fn profile_dir() -> std::path::PathBuf {
+    if std::env::var_os("ZWORK_CHAT_DIR").is_some_and(|p| !p.is_empty()) {
+        return zenda_theo::chat_dir();
+    }
     std::env::var_os("WORDCRAFT_PROFILE_DIR")
         .filter(|p| !p.is_empty())
         .map(std::path::PathBuf::from)
@@ -119,9 +121,7 @@ fn profile_dir() -> std::path::PathBuf {
 
 /// Work sent a chat key: the chat exists from now on (Work's flag is on).
 pub fn offer_key(app: &mut crate::WordApp, token: &str, expires_in_s: u64) {
-    let chat = app.theo_chat.get_or_insert_with(|| {
-        Chat::new("texto", "Texto", Arc::new(zenda_theo::dash::Http), Arc::new(zenda_theo::dash::MonoClock::default()))
-    });
+    let chat = app.theo_chat.get_or_insert_with(|| zenda_theo::new_chat("texto", "Texto"));
     chat.offer_key(token, expires_in_s);
 }
 
