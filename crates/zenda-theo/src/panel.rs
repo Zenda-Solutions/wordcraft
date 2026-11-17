@@ -63,7 +63,10 @@ impl Chat {
         Self {
             tool: tool.into(),
             tool_name: tool_name.into(),
-            url: std::env::var("ZWORK_CHAT_URL").ok().filter(|u| u.starts_with("https://") || u.starts_with("http://127.0.0.1")).unwrap_or(CHAT_URL.into()),
+            url: std::env::var("ZWORK_CHAT_URL")
+                .ok()
+                .filter(|u| u.starts_with("https://") || u.starts_with("http://127.0.0.1"))
+                .unwrap_or(CHAT_URL.into()),
             keys: Arc::new(SharedKey::new(clock)),
             transport,
             open: false,

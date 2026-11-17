@@ -62,7 +62,13 @@ mod tests {
     #[test]
     fn only_a_chat_key_with_a_sane_life_is_taken() {
         assert_eq!(key_params(&json!({"llave": "zck_a", "venceEn": 3600})), Ok(("zck_a".to_string(), 3600)));
-        for bad in [json!({}), json!({"llave": "sk-model", "venceEn": 3600}), json!({"llave": "zck_a", "venceEn": 0}), json!({"llave": "zck_a", "venceEn": 999_999}), json!({"llave": "zck_a"})] {
+        for bad in [
+            json!({}),
+            json!({"llave": "sk-model", "venceEn": 3600}),
+            json!({"llave": "zck_a", "venceEn": 0}),
+            json!({"llave": "zck_a", "venceEn": 999_999}),
+            json!({"llave": "zck_a"}),
+        ] {
             assert!(key_params(&bad).is_err(), "{bad}");
         }
     }

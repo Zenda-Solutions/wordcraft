@@ -114,7 +114,10 @@ mod tests {
 
     #[test]
     fn hacer_refuses_what_the_policy_does_not_allow() {
-        assert_eq!(command_of(&json!({"command": "layer.new", "params": {"name": "Fondo"}}), &FOTO).unwrap(), ("layer.new", json!({"name": "Fondo"})));
+        assert_eq!(
+            command_of(&json!({"command": "layer.new", "params": {"name": "Fondo"}}), &FOTO).unwrap(),
+            ("layer.new", json!({"name": "Fondo"}))
+        );
         assert!(command_of(&json!({"command": "file.save"}), &FOTO).is_err());
         assert!(command_of(&json!({}), &FOTO).is_err());
         assert_eq!(command_of(&json!({"command": "layer.new", "params": 3}), &FOTO).unwrap().1, json!({}));

@@ -294,7 +294,10 @@ pub(crate) mod tests {
     impl Transport for Scripted {
         fn post(&self, _url: &str, key: &str, _tool: &str, _body: &Value, on_line: &mut dyn FnMut(&str)) -> Result<(), HttpError> {
             self.keys_seen.lock().unwrap().push(key.to_string());
-            let status = { let mut s = self.statuses.lock().unwrap(); if s.is_empty() { 200 } else { s.remove(0) } };
+            let status = {
+                let mut s = self.statuses.lock().unwrap();
+                if s.is_empty() { 200 } else { s.remove(0) }
+            };
             match status {
                 200 => {
                     for word in self.text.split_inclusive(' ') {
@@ -319,7 +322,9 @@ pub(crate) mod tests {
         let mut s = Stream::default();
         assert!(s.line(r##"data: {"choices":[{"delta":{"content":"Ho"}}]}"##));
         assert!(s.line(r##"data: {"choices":[{"delta":{"content":"la"}}]}"##));
-        assert!(!s.line(r##"data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"texto_","arguments":"{\"a\""}}]}}]}"##));
+        assert!(
+            !s.line(r##"data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"c1","function":{"name":"texto_","arguments":"{\"a\""}}]}}]}"##)
+        );
         s.line(r##"data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"name":"hacer","arguments":":1}"}}]}}]}"##);
         s.line("data: [DONE]");
         s.line(": keep-alive");

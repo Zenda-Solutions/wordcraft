@@ -5,9 +5,9 @@
 
 use crate::dash::{ChatError, SharedKey, Transport, complete};
 use serde_json::{Value, json};
+use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::sync::Arc;
 use std::time::Duration;
 
 /// Turns with actions before Theo must answer in words.
@@ -65,7 +65,14 @@ pub fn start(ask: Ask, transport: Arc<dyn Transport>, keys: Arc<SharedKey>) -> R
     Run { stop, rx }
 }
 
-fn run(ask: &Ask, transport: &dyn Transport, keys: &SharedKey, stop: &AtomicBool, tx: &Sender<ToUi>, messages: &mut Vec<Value>) -> Result<String, ChatError> {
+fn run(
+    ask: &Ask,
+    transport: &dyn Transport,
+    keys: &SharedKey,
+    stop: &AtomicBool,
+    tx: &Sender<ToUi>,
+    messages: &mut Vec<Value>,
+) -> Result<String, ChatError> {
     let mut tools = vec![read_tool()];
     tools.extend(ask.actions.iter().cloned());
     for _ in 0..MAX_STEPS {
@@ -181,10 +188,7 @@ mod tests {
 
     #[test]
     fn frenar_stops_before_the_next_action_and_keeps_the_history() {
-        let model = Arc::new(Model(
-            Mutex::new(vec![vec![call("c1", "format.set", "{}")], vec![text("no debería llegar")]]),
-            Mutex::new(vec![]),
-        ));
+        let model = Arc::new(Model(Mutex::new(vec![vec![call("c1", "format.set", "{}")], vec![text("no debería llegar")]]), Mutex::new(vec![])));
         let run = start(ask(), model.clone(), keys());
         let stop = run.stop.clone();
         let (messages, result) = loop {
@@ -204,10 +208,7 @@ mod tests {
 
     #[test]
     fn a_refused_action_goes_back_to_theo_as_its_result() {
-        let model = Arc::new(Model(
-            Mutex::new(vec![vec![call("c1", "text.delete", "{}")], vec![text("No borré nada.")]]),
-            Mutex::new(vec![]),
-        ));
+        let model = Arc::new(Model(Mutex::new(vec![vec![call("c1", "text.delete", "{}")], vec![text("No borré nada.")]]), Mutex::new(vec![])));
         let run = start(ask(), model.clone(), keys());
         let result = loop {
             match run.rx.recv().unwrap() {
