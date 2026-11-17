@@ -88,6 +88,8 @@ pub mod window_close;
 pub mod window_geometry;
 pub mod wordart_menus;
 pub mod zenda;
+#[cfg(feature = "zenda")]
+pub mod zenda_chat;
 pub mod zotero;
 
 use serde::{Deserialize, Serialize};
@@ -572,6 +574,9 @@ pub struct WordApp {
     control_rx: Option<std::sync::mpsc::Receiver<ControlRequest>>,
     /// Zenda's build: what the person asked of Work, until Work drains it (`work.events`).
     pub zenda: zenda::Outbox,
+    /// Theo's chat inside Texto: `None` until Work sends a chat key (its flag is on).
+    #[cfg(feature = "zenda")]
+    pub theo_chat: Option<zenda_theo::panel::Chat>,
     shot_token: u64,
     queued_shots: Vec<(u64, f64, u32)>,
     pending_shots: Vec<(u64, Option<String>, std::sync::mpsc::Sender<Value>, f64)>,
@@ -723,6 +728,8 @@ impl WordApp {
             focus_ribbon: false,
             control_rx: None,
             zenda: Default::default(),
+            #[cfg(feature = "zenda")]
+            theo_chat: None,
             shot_token: 0,
             queued_shots: Vec::new(),
             pending_shots: Vec::new(),
@@ -2199,6 +2206,8 @@ impl WordApp {
 
     /// Per-frame logic before layout: control requests, screenshots, shortcuts, file drops.
     pub fn logic(&mut self, ctx: &egui::Context) {
+        #[cfg(feature = "zenda")]
+        zenda_chat::tick(self);
         let lang = i18n::Lang::from_pref(&self.ui.language);
         i18n::set_current(lang);
         // New documents are written in the interface's language when WordCraft can proof it
@@ -2512,6 +2521,8 @@ impl WordApp {
                 ribbon::show(self, ui);
                 chrome::status_bar(self, ui);
                 panes::show(self, ui);
+                #[cfg(feature = "zenda")]
+                zenda_chat::show(self, ui);
             }
             let fill = if screen == chrome::Screen::Focus { chrome::FOCUS_CANVAS } else { t.canvas };
             egui::CentralPanel::default().frame(egui::Frame::NONE.fill(fill)).show(ui, |ui| {

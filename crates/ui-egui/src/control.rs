@@ -163,6 +163,17 @@ pub fn handle(app: &mut WordApp, ctx: &egui::Context, req: &ControlRequest) -> O
         },
         // Zenda's build: Work drains what the person asked of it (`zenda.rs`).
         "work.events" if crate::zenda::ON => ok(json!({"events": app.zenda.drain()})),
+        // Zenda's build: Work hands Theo's chat a short-lived key (zenda_chat.rs). Only over this
+        // authenticated channel.
+        #[cfg(feature = "zenda")]
+        "zenda.chat.key" => {
+            let (Some(token), Some(secs)) = (s("llave"), p.get("venceEn").and_then(Value::as_u64)) else { return err("missing llave/venceEn") };
+            if !token.starts_with("zck_") || secs == 0 || secs > 24 * 3600 {
+                return err("invalid chat key");
+            }
+            crate::zenda_chat::offer_key(app, token, secs);
+            ok(json!({}))
+        }
         "ui.inspect" => ok(inspect(app, ctx)),
         "ui.parity" => ok(wordcraft_engine::catalog::parity(&app.session.registry)),
         "ui.click" => {
