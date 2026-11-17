@@ -163,6 +163,17 @@ pub fn handle(app: &mut WordApp, ctx: &egui::Context, req: &ControlRequest) -> O
         },
         // Zenda's build: Work drains what the person asked of it (`zenda.rs`).
         "work.events" if crate::zenda::ON => ok(json!({"events": app.zenda.drain()})),
+        // Zenda's build: Work hands Theo's chat a short-lived key (zenda_chat.rs). Only over this
+        // authenticated channel.
+        #[cfg(feature = "zenda")]
+        "zenda.chat.key" => {
+            let (token, secs) = match zenda_theo::key_params(p) {
+                Ok(k) => k,
+                Err(e) => return err(e),
+            };
+            crate::zenda_chat::offer_key(app, &token, secs);
+            ok(json!({}))
+        }
         "ui.inspect" => ok(inspect(app, ctx)),
         "ui.parity" => ok(wordcraft_engine::catalog::parity(&app.session.registry)),
         "ui.click" => {

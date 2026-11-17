@@ -374,8 +374,15 @@ pub fn title_bar(app: &mut WordApp, ui: &mut Ui) {
                     // Zenda's build: the Theo button (zenda-theo-button). Work arranges the windows and opens Theo.
                     if crate::zenda::ON {
                         if crate::zenda::theo_button(ui, tl!("Ask Theo for help"), tl!("Ask Theo about what is on screen")).clicked() {
-                            let context = crate::zenda::theo_context(app);
-                            app.zenda.push("work.theo", context);
+                            // With Work's chat flag on, the chat opens here instead (zenda_chat.rs).
+                            #[cfg(feature = "zenda")]
+                            let in_tool = crate::zenda_chat::toggle(app);
+                            #[cfg(not(feature = "zenda"))]
+                            let in_tool = false;
+                            if !in_tool {
+                                let context = crate::zenda::theo_context(app);
+                                app.zenda.push("work.theo", context);
+                            }
                         }
                         ui.add_space(8.0);
                     }

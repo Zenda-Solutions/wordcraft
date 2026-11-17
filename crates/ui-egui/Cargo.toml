@@ -9,8 +9,9 @@ description = "WordCraft egui front end (Word-style ribbon UI); swappable: nothi
 workspace = true
 
 [features]
-# Zenda's build for Work: the Theo button, Share to Work, no community links (src/zenda.rs).
-zenda = []
+# Zenda's build for Work: the Theo button, Share to Work, no community links (src/zenda.rs), and
+# Theo's chat inside Texto when Work turns it on (src/zenda_chat.rs).
+zenda = ["dep:zenda-theo"]
 
 [dependencies]
 craft-ui = { git = "https://github.com/storytold/craft-libs", rev = "d27646a5f7c8b4fc85d9dd3213b8c88b58e0088d" }
@@ -28,6 +29,7 @@ wordcraft-render = { workspace = true }
 wordcraft-engine = { workspace = true }
 wordcraft-zotero = { workspace = true }
 egui = { workspace = true }
+zenda-theo = { path = "../zenda-theo", optional = true, features = ["egui", "http"] }
 serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
