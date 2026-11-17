@@ -15,6 +15,7 @@
 //! [`panel::Host`].
 
 pub mod agent;
+pub mod commands;
 pub mod dash;
 pub mod key;
 #[cfg(feature = "egui")]
