@@ -286,10 +286,11 @@ impl Chat {
             if let Some(e) = self.error.clone() {
                 ui.colored_label(egui::Color32::from_rgb(180, 35, 24), e.text());
                 ui.horizontal(|ui| {
-                    if e == ChatError::WorkGone && self.zwork_exe.is_some() && ui.button("Abrir Work").clicked() {
-                        if let Some(exe) = &self.zwork_exe {
-                            let _ = std::process::Command::new(exe).arg("abrir").spawn();
-                        }
+                    if e == ChatError::WorkGone
+                        && let Some(exe) = &self.zwork_exe
+                        && ui.button("Abrir Work").clicked()
+                    {
+                        let _ = std::process::Command::new(exe).arg("abrir").spawn();
                     }
                     if ui.button("Reintentar").clicked() {
                         self.retry(host);

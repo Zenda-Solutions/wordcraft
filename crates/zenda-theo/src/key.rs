@@ -89,10 +89,10 @@ impl KeyHolder {
         if self.state(now) == KeyState::Fresh {
             return false;
         }
-        if let Some(at) = self.asked {
-            if now.saturating_sub(at) < backoff(self.attempts) {
-                return false;
-            }
+        if let Some(at) = self.asked
+            && now.saturating_sub(at) < backoff(self.attempts)
+        {
+            return false;
         }
         self.asked = Some(now);
         self.attempts = self.attempts.saturating_add(1);
