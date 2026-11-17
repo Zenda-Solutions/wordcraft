@@ -102,8 +102,14 @@ impl Host for TextoHost<'_> {
         }
     }
 
-    fn target(&self, _name: &str, _args: &Value) -> Option<egui::Rect> {
-        None
+    /// Theo's cursor goes to the caret, where text, paragraph and format commands land.
+    fn target(&mut self, name: &str, _args: &Value) -> Option<egui::Rect> {
+        let command = command_of(name)?;
+        if !["text.", "para.", "format.", "insert."].iter().any(|p| command.starts_with(p)) || !self.0.has_document() {
+            return None;
+        }
+        let (p, h) = crate::canvas::caret_screen(self.0)?;
+        Some(egui::Rect::from_min_size(p, egui::vec2(2.0, h.max(8.0))))
     }
 }
 

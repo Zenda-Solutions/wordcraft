@@ -28,7 +28,7 @@ pub trait Host {
     /// read the document to decide (is that cell empty?).
     fn confirm(&mut self, name: &str, args: &Value) -> Option<String>;
     /// Where the action lands on screen, for Theo's cursor.
-    fn target(&self, name: &str, args: &Value) -> Option<egui::Rect>;
+    fn target(&mut self, name: &str, args: &Value) -> Option<egui::Rect>;
 }
 
 struct Pending {
@@ -364,7 +364,7 @@ mod tests {
         fn confirm(&mut self, name: &str, _: &Value) -> Option<String> {
             (name == "text.delete").then(|| "¿Borro el texto seleccionado?".into())
         }
-        fn target(&self, _: &str, _: &Value) -> Option<egui::Rect> {
+        fn target(&mut self, _: &str, _: &Value) -> Option<egui::Rect> {
             None
         }
     }
