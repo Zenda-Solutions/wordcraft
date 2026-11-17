@@ -19,3 +19,6 @@ serde_json = { workspace = true }
 # A range on purpose: WordCraft is on egui 0.36, the other forks on 0.37; each uses its own.
 egui = { version = ">=0.36, <0.38", optional = true, default-features = false }
 ureq = { version = "3", optional = true, features = ["json"] }
+
+[lints]
+workspace = true
