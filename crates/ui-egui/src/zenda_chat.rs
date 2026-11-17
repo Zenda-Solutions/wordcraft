@@ -93,7 +93,7 @@ impl Host for TextoHost<'_> {
         self.0.execute(command, if args.is_object() { args.clone() } else { json!({}) })
     }
 
-    fn confirm(&self, name: &str, _args: &Value) -> Option<String> {
+    fn confirm(&mut self, name: &str, _args: &Value) -> Option<String> {
         let selected = !self.0.session.sel.is_collapsed();
         match command_of(name)? {
             "text.delete" => Some(if selected { "¿Borro el texto seleccionado?" } else { "¿Borro el carácter que sigue al cursor?" }.into()),

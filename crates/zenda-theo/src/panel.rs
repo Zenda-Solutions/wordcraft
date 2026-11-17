@@ -24,8 +24,9 @@ pub trait Host {
     fn read(&mut self) -> Value;
     /// Runs one action through the app's command API.
     fn act(&mut self, name: &str, args: &Value) -> Result<Value, String>;
-    /// The question to ask the person first, for an action that deletes or replaces their work.
-    fn confirm(&self, name: &str, args: &Value) -> Option<String>;
+    /// The question to ask the person first, for an action that deletes or replaces their work. It may
+    /// read the document to decide (is that cell empty?).
+    fn confirm(&mut self, name: &str, args: &Value) -> Option<String>;
     /// Where the action lands on screen, for Theo's cursor.
     fn target(&self, name: &str, args: &Value) -> Option<egui::Rect>;
 }
@@ -360,7 +361,7 @@ mod tests {
             self.acted.push(name.into());
             Ok(json!({}))
         }
-        fn confirm(&self, name: &str, _: &Value) -> Option<String> {
+        fn confirm(&mut self, name: &str, _: &Value) -> Option<String> {
             (name == "text.delete").then(|| "¿Borro el texto seleccionado?".into())
         }
         fn target(&self, _: &str, _: &Value) -> Option<egui::Rect> {
