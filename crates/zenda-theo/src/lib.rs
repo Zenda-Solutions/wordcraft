@@ -17,6 +17,7 @@
 pub mod agent;
 pub mod commands;
 pub mod dash;
+pub mod headless;
 pub mod key;
 #[cfg(feature = "egui")]
 pub mod panel;
@@ -42,6 +43,12 @@ pub fn key_params(p: &Value) -> Result<(String, u64), &'static str> {
 }
 
 /// A chat for `tool` (Work's manifest id) shown as `name`, talking to the dash over HTTPS.
+/// The chat without egui (Circuitos), talking to the dash over HTTPS.
+#[cfg(feature = "http")]
+pub fn new_headless(tool: &str, name: &str) -> headless::Headless {
+    headless::Headless::new(tool, name, std::sync::Arc::new(dash::Http), std::sync::Arc::new(dash::MonoClock::default()))
+}
+
 #[cfg(all(feature = "egui", feature = "http"))]
 pub fn new_chat(tool: &str, name: &str) -> panel::Chat {
     panel::Chat::new(tool, name, std::sync::Arc::new(dash::Http), std::sync::Arc::new(dash::MonoClock::default()))
