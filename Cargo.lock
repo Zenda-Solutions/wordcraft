@@ -7258,6 +7258,8 @@ name = "zenda-theo"
 version = "0.1.0"
 dependencies = [
  "egui",
+ "egui_kittest",
+ "image",
  "serde",
  "serde_json",
  "ureq",

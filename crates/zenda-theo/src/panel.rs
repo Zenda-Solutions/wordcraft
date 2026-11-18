@@ -29,6 +29,10 @@ pub trait Host {
     fn confirm(&mut self, name: &str, args: &Value) -> Option<String>;
     /// Where the action lands on screen, for Theo's cursor.
     fn target(&mut self, name: &str, args: &Value) -> Option<egui::Rect>;
+    /// Two or three things to ask Theo in this app, shown on an empty chat. Tapping one sends it.
+    fn suggestions(&self) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 struct Pending {
@@ -251,61 +255,109 @@ impl Chat {
         self.pending.as_ref().map(|p| p.question.as_str())
     }
 
-    /// The panel's contents, for a right side panel about 320 points wide.
+    /// The panel's contents, for a right side panel about 320 points wide. It follows the tool's light or
+    /// dark visuals: the person's messages in a tinted bubble on the right, Theo's answers as plain text
+    /// with light Markdown (bold, `code`, lists), and the message box pinned to the bottom.
     pub fn ui(&mut self, ui: &mut egui::Ui, host: &mut dyn Host) {
-        let orange = egui::Color32::from_rgb(234, 108, 30);
+        let busy = self.run.is_some();
+        self.header(ui);
+        ui.add_space(4.0);
+        ui.separator();
+        // The message box keeps its height from the last frame, so the conversation fills the rest.
+        let box_h = ui.ctx().data(|d| d.get_temp::<f32>(ui.id().with("zenda.theo.box"))).unwrap_or(88.0);
+        let list_h = (ui.available_height() - box_h - 10.0).max(80.0);
+        egui::ScrollArea::vertical().auto_shrink([false, false]).max_height(list_h).stick_to_bottom(true).show(ui, |ui| {
+            ui.set_min_height(list_h);
+            ui.add_space(6.0);
+            self.messages(ui, host);
+            ui.add_space(6.0);
+        });
+        ui.add_space(6.0);
+        let h = self.composer(ui, host);
+        ui.ctx().data_mut(|d| d.insert_temp(ui.id().with("zenda.theo.box"), h));
+        if busy {
+            ui.ctx().request_repaint_after(std::time::Duration::from_millis(60));
+        }
+    }
+
+    fn header(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("Theo").strong().color(orange));
-            ui.label(egui::RichText::new(format!("en {}", self.tool_name)).weak());
+            avatar(ui, 13.0);
+            ui.add_space(2.0);
+            ui.vertical(|ui| {
+                ui.spacing_mut().item_spacing.y = 0.0;
+                ui.label(egui::RichText::new("Theo").strong().size(15.0));
+                ui.label(egui::RichText::new(format!("Tu compañero en {}", self.tool_name)).small().weak());
+            });
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                if ui.button("✕").on_hover_text("Cerrar el chat").clicked() {
+                if close_button(ui).on_hover_text("Cerrar el chat").clicked() {
                     self.open = false;
                 }
-                if !self.conv.messages.is_empty()
-                    && self.run.is_none()
-                    && ui.button("Nueva charla").on_hover_text("Empezar de cero con Theo en este documento").clicked()
-                {
-                    self.new_conversation();
+                if !self.conv.messages.is_empty() && self.run.is_none() {
+                    let b = egui::Button::new(egui::RichText::new("Nueva charla").small()).frame(false);
+                    if ui.add(b).on_hover_text("Empezar de cero con Theo en este documento").clicked() {
+                        self.new_conversation();
+                    }
                 }
             });
         });
-        ui.separator();
-        let input_height = 96.0;
-        egui::ScrollArea::vertical().stick_to_bottom(true).max_height((ui.available_height() - input_height).max(80.0)).show(ui, |ui| {
-            if self.conv.messages.is_empty() {
-                ui.label(format!("Estás en {}. ¿En qué te ayudo?", self.tool_name));
+    }
+
+    fn messages(&mut self, ui: &mut egui::Ui, host: &mut dyn Host) {
+        let transcript = self.transcript();
+        if transcript.is_empty() && self.run.is_none() {
+            self.welcome(ui, host);
+        }
+        let mut last_mine = None;
+        for (mine, text) in transcript {
+            if last_mine.is_some() {
+                ui.add_space(if last_mine == Some(mine) { 4.0 } else { 12.0 });
             }
-            for (mine, text) in self.transcript() {
-                let frame = egui::Frame::new().inner_margin(8.0).corner_radius(10.0).fill(if mine {
-                    ui.visuals().faint_bg_color
-                } else {
-                    egui::Color32::from_rgb(255, 243, 230)
-                });
-                frame.show(ui, |ui| {
-                    ui.label(egui::RichText::new(text).color(egui::Color32::BLACK));
-                });
-                ui.add_space(4.0);
+            if mine {
+                user_bubble(ui, &text);
+            } else {
+                theo_says(ui, &text, last_mine != Some(false));
             }
-            if self.run.is_some() {
-                ui.label(if self.live.is_empty() { "Theo está pensando…".to_string() } else { self.live.clone() });
-            }
-            if let Some(q) = self.pending_question().map(str::to_string) {
-                ui.label(egui::RichText::new(q).strong());
+            last_mine = Some(mine);
+        }
+        if self.run.is_some() {
+            ui.add_space(12.0);
+            if self.live.trim().is_empty() {
                 ui.horizontal(|ui| {
-                    if ui.button("Sí, hacelo").clicked() {
+                    avatar(ui, 9.0);
+                    ui.label(egui::RichText::new("Theo está pensando").weak());
+                    dots(ui);
+                });
+            } else {
+                theo_says(ui, &self.live, last_mine != Some(false));
+                dots(ui);
+            }
+        }
+        if let Some(q) = self.pending_question().map(str::to_string) {
+            ui.add_space(12.0);
+            card(ui, ACCENT, |ui| {
+                ui.label(egui::RichText::new(q).strong());
+                ui.add_space(6.0);
+                ui.horizontal(|ui| {
+                    if ui.add(primary("Sí, hacelo")).clicked() {
                         self.answer(host, true);
                     }
                     if ui.button("No").clicked() {
                         self.answer(host, false);
                     }
                 });
-            }
-            if let Some(e) = self.error.clone() {
-                ui.colored_label(egui::Color32::from_rgb(180, 35, 24), e.text());
+            });
+        }
+        if let Some(e) = self.error.clone() {
+            ui.add_space(12.0);
+            let red = ui.visuals().error_fg_color;
+            card(ui, red, |ui| {
+                ui.label(e.text());
+                ui.add_space(6.0);
                 ui.horizontal(|ui| {
                     if e == ChatError::WorkGone
                         && let Some(exe) = &self.zwork_exe
-                        && ui.button("Abrir Work").clicked()
+                        && ui.add(primary("Abrir Work")).clicked()
                     {
                         let _ = std::process::Command::new(exe).arg("abrir").spawn();
                     }
@@ -313,26 +365,78 @@ impl Chat {
                         self.retry(host);
                     }
                 });
-            }
-        });
-        ui.separator();
-        let busy = self.run.is_some();
-        let edit = ui.add(egui::TextEdit::multiline(&mut self.conv.draft).hint_text("Escribile a Theo").desired_rows(2).desired_width(f32::INFINITY));
-        // The hint is not a name: screen readers and UI Automation need one to find the box.
-        edit.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, "Escribile a Theo"));
-        let enter = edit.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter) && !i.modifiers.shift);
-        ui.horizontal(|ui| {
-            if busy {
-                if ui.button("Frenar").clicked() {
-                    self.stop();
-                }
-            } else if ui.button("Enviar").clicked() || enter {
+            });
+        }
+    }
+
+    fn welcome(&mut self, ui: &mut egui::Ui, host: &mut dyn Host) {
+        ui.add_space(8.0);
+        ui.label(egui::RichText::new("Hola, soy Theo.").strong().size(16.0));
+        ui.add_space(2.0);
+        ui.label(egui::RichText::new(format!("Estás en {}. Pedime que lo haga por vos o preguntame cómo se hace.", self.tool_name)).weak());
+        let ideas = host.suggestions();
+        if ideas.is_empty() {
+            return;
+        }
+        ui.add_space(12.0);
+        ui.label(egui::RichText::new("Probá con").small().weak());
+        ui.add_space(2.0);
+        for idea in ideas {
+            let chip = egui::Button::new(egui::RichText::new(&idea).color(ui.visuals().text_color()))
+                .wrap()
+                .fill(ui.visuals().faint_bg_color)
+                .stroke(ui.visuals().widgets.noninteractive.bg_stroke)
+                .corner_radius(8.0)
+                .min_size(egui::vec2(ui.available_width(), 30.0));
+            if ui.add(chip).clicked() {
+                self.conv.draft = idea;
                 self.send(host);
             }
-        });
-        if busy {
-            ui.ctx().request_repaint_after(std::time::Duration::from_millis(100));
+            ui.add_space(2.0);
         }
+    }
+
+    /// The message box; returns its height.
+    fn composer(&mut self, ui: &mut egui::Ui, host: &mut dyn Host) -> f32 {
+        let busy = self.run.is_some();
+        let v = ui.visuals().clone();
+        let id = ui.id().with("zenda.theo.draft");
+        let focused = ui.memory(|m| m.has_focus(id));
+        let stroke = if focused { egui::Stroke::new(1.5, ACCENT) } else { v.widgets.noninteractive.bg_stroke };
+        let frame = egui::Frame::new().fill(v.extreme_bg_color).stroke(stroke).corner_radius(10.0).inner_margin(8.0);
+        let shown = frame.show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            {
+                let edit = ui.add(
+                    egui::TextEdit::multiline(&mut self.conv.draft)
+                        .id(id)
+                        .hint_text("Escribile a Theo")
+                        .frame(egui::Frame::NONE)
+                        .desired_rows(2)
+                        .desired_width(f32::INFINITY),
+                );
+                // The hint is not a name: screen readers and UI Automation need one to find the box.
+                edit.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, "Escribile a Theo"));
+                let enter = edit.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter) && !i.modifiers.shift);
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("Enter envía · Shift+Enter, otra línea").small().weak());
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if busy {
+                            if ui.button("Frenar").on_hover_text("Theo para antes de su próximo paso").clicked() {
+                                self.stop();
+                            }
+                        } else {
+                            let empty = self.conv.draft.trim().is_empty();
+                            let send = ui.add_enabled(!empty, primary("Enviar"));
+                            if send.clicked() || (enter && !empty) {
+                                self.send(host);
+                            }
+                        }
+                    });
+                });
+            }
+        });
+        shown.response.rect.height()
     }
 
     /// Theo's cursor over the app, gliding to where he acts. Only a picture: the real mouse never moves.
@@ -340,7 +444,7 @@ impl Chat {
         let Some((at, to)) = self.cursor else { return };
         let next = at + (to - at) * 0.25;
         let painter = ctx.layer_painter(egui::LayerId::new(egui::Order::Foreground, egui::Id::new("zenda.theo.cursor")));
-        let orange = egui::Color32::from_rgb(234, 108, 30);
+        let orange = ACCENT;
         painter.circle_filled(next, 7.0, orange);
         painter.text(next + egui::vec2(10.0, 6.0), egui::Align2::LEFT_TOP, "Theo", egui::FontId::proportional(11.0), orange);
         if (to - next).length() > 0.5 {
@@ -352,6 +456,202 @@ impl Chat {
             self.cursor = Some((to, to));
         }
     }
+}
+
+/// Zenda's orange: Theo's avatar, his cursor, the main button.
+const ACCENT: egui::Color32 = egui::Color32::from_rgb(234, 108, 30);
+
+/// Theo's round avatar with his initial.
+fn avatar(ui: &mut egui::Ui, radius: f32) {
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(radius * 2.0, radius * 2.0), egui::Sense::hover());
+    let p = ui.painter();
+    p.circle_filled(rect.center(), radius, ACCENT);
+    p.text(rect.center(), egui::Align2::CENTER_CENTER, "T", egui::FontId::proportional(radius * 1.15), egui::Color32::WHITE);
+}
+
+/// A drawn ✕ (not a glyph: the tools' fonts may not have one).
+fn close_button(ui: &mut egui::Ui) -> egui::Response {
+    let (rect, resp) = ui.allocate_exact_size(egui::vec2(24.0, 24.0), egui::Sense::click());
+    let resp = resp.on_hover_cursor(egui::CursorIcon::PointingHand);
+    let style = ui.style().interact(&resp);
+    if resp.hovered() {
+        ui.painter().rect_filled(rect, 6.0, ui.visuals().widgets.hovered.weak_bg_fill);
+    }
+    let c = rect.center();
+    let d = 4.5;
+    let stroke = egui::Stroke::new(1.5, style.fg_stroke.color);
+    ui.painter().line_segment([c + egui::vec2(-d, -d), c + egui::vec2(d, d)], stroke);
+    ui.painter().line_segment([c + egui::vec2(-d, d), c + egui::vec2(d, -d)], stroke);
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, "Cerrar el chat"));
+    resp
+}
+
+/// The main button: orange with white text.
+fn primary(text: &str) -> egui::Button<'static> {
+    egui::Button::new(egui::RichText::new(text.to_string()).color(egui::Color32::WHITE).strong())
+        .fill(ACCENT)
+        .corner_radius(6.0)
+        .min_size(egui::vec2(64.0, 26.0))
+}
+
+/// A notice inside the conversation (a question before deleting, an error), with a coloured edge.
+fn card(ui: &mut egui::Ui, edge: egui::Color32, add: impl FnOnce(&mut egui::Ui)) {
+    let fill = edge.gamma_multiply(if ui.visuals().dark_mode { 0.16 } else { 0.10 });
+    let r = egui::Frame::new()
+        .fill(fill)
+        .stroke(egui::Stroke::new(1.0, edge.gamma_multiply(0.5)))
+        .corner_radius(8.0)
+        .inner_margin(egui::Margin { left: 12, right: 10, top: 8, bottom: 8 })
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            add(ui)
+        });
+    let rect = r.response.rect;
+    let bar = egui::Rect::from_min_max(rect.min + egui::vec2(1.0, 6.0), egui::pos2(rect.min.x + 4.0, rect.max.y - 6.0));
+    ui.painter().rect_filled(bar, 2.0, edge);
+}
+
+/// Three dots that pulse while Theo works.
+fn dots(ui: &mut egui::Ui) {
+    let (rect, _) = ui.allocate_exact_size(egui::vec2(26.0, 14.0), egui::Sense::hover());
+    let t = ui.input(|i| i.time) as f32;
+    let base = ui.visuals().weak_text_color();
+    for k in 0..3 {
+        let phase = (t * 5.0 - k as f32 * 0.8).sin() * 0.5 + 0.5;
+        let c = rect.left_center() + egui::vec2(4.0 + k as f32 * 8.0, 0.0);
+        ui.painter().circle_filled(c, 2.6, base.gamma_multiply(0.35 + 0.65 * phase));
+    }
+}
+
+/// The person's message: a tinted bubble on the right, at most 85% of the panel wide.
+fn user_bubble(ui: &mut egui::Ui, text: &str) {
+    let max = (ui.available_width() * 0.85).max(120.0);
+    let fill = if ui.visuals().dark_mode { egui::Color32::from_gray(58) } else { egui::Color32::from_rgb(253, 236, 222) };
+    let color = ui.visuals().strong_text_color();
+    ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
+        egui::Frame::new()
+            .fill(fill)
+            .corner_radius(egui::CornerRadius { nw: 12, ne: 12, sw: 12, se: 4 })
+            .inner_margin(egui::Margin::symmetric(10, 7))
+            .show(ui, |ui| {
+                ui.set_max_width(max);
+                ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                    ui.add(egui::Label::new(egui::RichText::new(text).color(color)).wrap());
+                });
+            });
+    });
+}
+
+/// Theo's answer: plain text under his name, with light Markdown.
+fn theo_says(ui: &mut egui::Ui, text: &str, with_name: bool) {
+    if with_name {
+        ui.horizontal(|ui| {
+            avatar(ui, 9.0);
+            ui.label(egui::RichText::new("Theo").small().strong());
+        });
+        ui.add_space(2.0);
+    }
+    markdown(ui, text);
+}
+
+/// The Markdown models write in a chat: paragraphs, `#` headings, `-`/`*`/`1.` lists, `**bold**` and
+/// `` `code` ``. Anything else shows as written.
+pub fn markdown(ui: &mut egui::Ui, text: &str) {
+    let mut gap = false;
+    let mut in_fence = false;
+    for line in text.lines() {
+        let t = line.trim();
+        if t.starts_with("```") {
+            in_fence = !in_fence;
+            continue;
+        }
+        if in_fence {
+            let code = egui::RichText::new(line).monospace().background_color(ui.visuals().code_bg_color);
+            ui.add(egui::Label::new(code).wrap());
+            continue;
+        }
+        if t.is_empty() {
+            gap = true;
+            continue;
+        }
+        if gap {
+            ui.add_space(6.0);
+            gap = false;
+        }
+        let heading = t.trim_start_matches('#');
+        if heading.len() < t.len() && heading.starts_with(' ') {
+            ui.add(egui::Label::new(inline(ui, heading.trim(), true)).wrap());
+            continue;
+        }
+        let indent = (line.len() - line.trim_start().len()) as f32 * 4.0;
+        let bullet = ["- ", "* ", "• "].iter().find_map(|b| t.strip_prefix(b)).map(|rest| ("•".to_string(), rest));
+        let numbered = || {
+            let digits = t.chars().take_while(char::is_ascii_digit).count();
+            (digits > 0 && t[digits..].starts_with(". ")).then(|| (t[..digits + 1].to_string(), &t[digits + 2..]))
+        };
+        match bullet.or_else(numbered) {
+            Some((mark, rest)) => {
+                ui.horizontal_top(|ui| {
+                    ui.add_space(4.0 + indent);
+                    let w = if mark == "•" { 10.0 } else { 18.0 };
+                    ui.add_sized([w, 0.0], egui::Label::new(egui::RichText::new(mark).color(ui.visuals().weak_text_color())));
+                    ui.add(egui::Label::new(inline(ui, rest, false)).wrap());
+                });
+            }
+            None => {
+                ui.add(egui::Label::new(inline(ui, t, false)).wrap());
+            }
+        }
+    }
+}
+
+/// Reading colour for Theo's answers: the tools' default text is too faint for long paragraphs.
+fn body_color(v: &egui::Visuals) -> egui::Color32 {
+    if v.dark_mode { egui::Color32::from_gray(200) } else { egui::Color32::from_gray(64) }
+}
+
+/// One line of text with `**bold**` and `` `code` `` turned into styles.
+fn inline(ui: &egui::Ui, text: &str, strong: bool) -> egui::text::LayoutJob {
+    let v = ui.visuals();
+    let body = egui::TextStyle::Body.resolve(ui.style());
+    let normal = if strong { v.strong_text_color() } else { body_color(v) };
+    let mut job = egui::text::LayoutJob::default();
+    let (mut bold, mut code) = (false, false);
+    let mut rest = text;
+    while !rest.is_empty() {
+        let next = [rest.find("**"), rest.find('`')].into_iter().flatten().min();
+        let (chunk, marker) = match next {
+            Some(i) => (&rest[..i], &rest[i..]),
+            None => (rest, ""),
+        };
+        if !chunk.is_empty() {
+            let format = if code {
+                egui::TextFormat {
+                    font_id: egui::FontId::monospace(body.size * 0.92),
+                    color: v.strong_text_color(),
+                    background: v.code_bg_color,
+                    ..Default::default()
+                }
+            } else {
+                egui::TextFormat { font_id: body.clone(), color: if bold { v.strong_text_color() } else { normal }, ..Default::default() }
+            };
+            job.append(chunk, 0.0, format);
+        }
+        if let Some(after) = marker.strip_prefix("**").filter(|_| !code) {
+            bold = !bold;
+            rest = after;
+        } else if let Some(after) = marker.strip_prefix('`') {
+            code = !code;
+            rest = after;
+        } else if let Some(after) = marker.strip_prefix("**") {
+            // `**` inside code stays as written.
+            job.append("**", 0.0, job.sections.last().map(|s| s.format.clone()).unwrap_or_default());
+            rest = after;
+        } else {
+            rest = "";
+        }
+    }
+    job
 }
 
 /// The `zwork.exe` that started the tool: an absolute path to a file named `zwork.exe`.
@@ -476,6 +776,18 @@ mod tests {
     }
 
     #[test]
+    fn markdown_marks_become_styles_not_text() {
+        let mut out = String::new();
+        let mut h = egui_kittest::Harness::new_ui(|ui| {
+            let job = inline(ui, "En la capa **Muros**, con `OFFSET` y `a**b`.", false);
+            ui.ctx().data_mut(|d| d.insert_temp(egui::Id::new("job"), job.text.clone()));
+        });
+        h.run();
+        h.ctx.data(|d| out = d.get_temp::<String>(egui::Id::new("job")).unwrap());
+        assert_eq!(out, "En la capa Muros, con OFFSET y a**b.");
+    }
+
+    #[test]
     fn work_exe_must_be_an_absolute_zwork_exe() {
         assert!(work_exe(None).is_none());
         assert!(work_exe(Some("zwork.exe".into())).is_none());
@@ -497,5 +809,85 @@ mod tests {
         assert_eq!(c.conv.draft, "a medio escribir");
         assert!(store::load(c.file.as_ref().unwrap()).messages.is_empty(), "a restart does not bring it back");
         let _ = std::fs::remove_dir_all(dir);
+    }
+}
+
+/// Renders the panel to PNG in light and dark, to look at it without a tool:
+/// `ZENDA_THEO_PREVIEW=<dir> cargo test -p zenda-theo --features egui panel_preview -- --ignored`.
+#[cfg(test)]
+mod panel_preview {
+    use super::*;
+    use crate::dash::tests::{FakeClock, Scripted};
+
+    struct Cad;
+    impl Host for Cad {
+        fn skill(&self) -> String {
+            String::new()
+        }
+        fn actions(&self) -> Vec<Value> {
+            vec![]
+        }
+        fn read(&mut self) -> Value {
+            json!({})
+        }
+        fn act(&mut self, _: &str, _: &Value) -> Result<Value, String> {
+            Ok(json!({}))
+        }
+        fn confirm(&mut self, _: &str, _: &Value) -> Option<String> {
+            None
+        }
+        fn target(&mut self, _: &str, _: &Value) -> Option<egui::Rect> {
+            None
+        }
+        fn suggestions(&self) -> Vec<String> {
+            vec!["Dibujame un rectángulo de 4 x 3 m con cotas".into(), "¿Cómo hago muros dobles con OFFSET?".into()]
+        }
+    }
+
+    fn chat(messages: Vec<Value>) -> Chat {
+        let mut c = Chat::new("cad", "CAD", Arc::new(Scripted::new(&[], "")), Arc::new(FakeClock::default()));
+        c.open = true;
+        c.conv.messages = messages;
+        c
+    }
+
+    fn talk() -> Vec<Value> {
+        vec![
+            json!({"role": "user", "content": "Dibujame la planta de una habitación de 4 x 3 m con una puerta de 0,80 m abajo, y acotala."}),
+            json!({"role": "assistant", "content": "", "tool_calls": [{"id": "1"}]}),
+            json!({"role": "tool", "content": "{}"}),
+            json!({"role": "assistant", "content": "Listo. Dibujé la planta en la capa **Muros**:\n\n- Rectángulo de 4000 x 3000 mm.\n- Hueco de puerta de 800 mm en la pared de abajo, con su arco en **Aberturas**.\n- Cotas de largo y ancho.\n\nSi querés, la paso a muros dobles con `OFFSET` de 150 mm."}),
+            json!({"role": "user", "content": "Sí, hacelo"}),
+        ]
+    }
+
+    fn shot(name: &str, theme: egui::Theme, mut chat: Chat, busy: Option<&str>) {
+        let Some(dir) = std::env::var_os("ZENDA_THEO_PREVIEW") else { return };
+        if let Some(live) = busy {
+            let (_tx, rx) = std::sync::mpsc::channel();
+            chat.run = Some(Run { stop: Arc::new(std::sync::atomic::AtomicBool::new(false)), rx });
+            chat.live = live.into();
+        }
+        let mut host = Cad;
+        let mut h =
+            egui_kittest::Harness::builder().with_size(egui::vec2(340.0, 640.0)).with_pixels_per_point(2.0).with_theme(theme).build_ui(move |ui| {
+                egui::Frame::new().fill(ui.visuals().panel_fill).inner_margin(8.0).show(ui, |ui| {
+                    ui.set_min_size(ui.available_size());
+                    chat.ui(ui, &mut host)
+                });
+            });
+        h.run_steps(4);
+        let img = h.render().expect("render");
+        img.save(std::path::Path::new(&dir).join(format!("{name}.png"))).expect("save");
+    }
+
+    #[test]
+    #[ignore = "writes PNGs; run by hand"]
+    fn panel_preview() {
+        for (t, theme) in [("dark", egui::Theme::Dark), ("light", egui::Theme::Light)] {
+            shot(&format!("{t}-empty"), theme, chat(vec![]), None);
+            shot(&format!("{t}-talk"), theme, chat(talk()), Some(""));
+            shot(&format!("{t}-done"), theme, chat(talk()[..4].to_vec()), None);
+        }
     }
 }
