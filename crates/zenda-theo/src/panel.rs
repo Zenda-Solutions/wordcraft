@@ -154,6 +154,17 @@ impl Chat {
         self.start(host);
     }
 
+    /// «Nueva charla»: forgets this document's conversation (and its saved file), keeping the draft.
+    pub fn new_conversation(&mut self) {
+        if self.run.is_some() {
+            return;
+        }
+        self.conv.messages.clear();
+        self.error = None;
+        self.live.clear();
+        self.save();
+    }
+
     /// Sends the same conversation again after a failure, without retyping.
     pub fn retry(&mut self, host: &mut dyn Host) {
         if self.run.is_none() && self.conv.messages.last().is_some_and(|m| m["role"] != "assistant") {
@@ -250,6 +261,12 @@ impl Chat {
                 if ui.button("✕").on_hover_text("Cerrar el chat").clicked() {
                     self.open = false;
                 }
+                if !self.conv.messages.is_empty()
+                    && self.run.is_none()
+                    && ui.button("Nueva charla").on_hover_text("Empezar de cero con Theo en este documento").clicked()
+                {
+                    self.new_conversation();
+                }
             });
         });
         ui.separator();
@@ -301,6 +318,8 @@ impl Chat {
         ui.separator();
         let busy = self.run.is_some();
         let edit = ui.add(egui::TextEdit::multiline(&mut self.conv.draft).hint_text("Escribile a Theo").desired_rows(2).desired_width(f32::INFINITY));
+        // The hint is not a name: screen readers and UI Automation need one to find the box.
+        edit.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, "Escribile a Theo"));
         let enter = edit.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter) && !i.modifiers.shift);
         ui.horizontal(|ui| {
             if busy {
@@ -461,5 +480,22 @@ mod tests {
         assert!(work_exe(None).is_none());
         assert!(work_exe(Some("zwork.exe".into())).is_none());
         assert!(work_exe(Some(std::env::current_exe().unwrap().into_os_string())).is_none());
+    }
+
+    #[test]
+    fn nueva_charla_forgets_the_document_talk_and_keeps_the_draft() {
+        let (mut c, _clock, dir) = chat("nueva", &[200], "Listo.");
+        let mut doc = Doc { acted: vec![] };
+        c.offer_key("zck_a", 3600);
+        *c.draft_mut() = "Hola".into();
+        c.send(&mut doc);
+        wait_done(&mut c, &mut doc);
+        assert_eq!(c.transcript().len(), 2);
+        *c.draft_mut() = "a medio escribir".into();
+        c.new_conversation();
+        assert!(c.transcript().is_empty());
+        assert_eq!(c.conv.draft, "a medio escribir");
+        assert!(store::load(c.file.as_ref().unwrap()).messages.is_empty(), "a restart does not bring it back");
+        let _ = std::fs::remove_dir_all(dir);
     }
 }
