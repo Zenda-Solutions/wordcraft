@@ -20,5 +20,11 @@ serde_json = { workspace = true }
 egui = { version = ">=0.36, <0.38", optional = true, default-features = false }
 ureq = { version = "3", optional = true, features = ["json"] }
 
+[dev-dependencies]
+# The panel previews (`cargo test -p zenda-theo --features egui panel_preview -- --ignored`).
+egui_kittest = { workspace = true, features = ["wgpu"] }
+image = { workspace = true }
+egui = { workspace = true, features = ["default_fonts"] }
+
 [lints]
 workspace = true
