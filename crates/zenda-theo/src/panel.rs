@@ -416,7 +416,13 @@ impl Chat {
                         .desired_width(f32::INFINITY),
                 );
                 // The hint is not a name: screen readers and UI Automation need one to find the box.
-                edit.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::TextEdit, true, "Escribile a Theo"));
+                // Built from `text_edit` because egui 0.37 renamed `WidgetType::TextEdit` (CAD is on 0.37).
+                let draft = self.conv.draft.clone();
+                edit.widget_info(|| {
+                    let mut info = egui::WidgetInfo::text_edit(true, &draft, &draft, "Escribile a Theo");
+                    info.label = Some("Escribile a Theo".into());
+                    info
+                });
                 let enter = edit.has_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter) && !i.modifiers.shift);
                 ui.horizontal(|ui| {
                     ui.label(egui::RichText::new("Enter envía · Shift+Enter, otra línea").small().weak());
