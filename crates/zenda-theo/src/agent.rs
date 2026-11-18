@@ -10,8 +10,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::Duration;
 
-/// Turns with actions before Theo must answer in words.
-pub const MAX_STEPS: usize = 8;
+/// Turns with actions before Theo must answer in words. A floor plan in CAD (layers, walls, openings,
+/// dimensions) took 10 to 12 in the exploratory pass of 18/11; at 8 it stopped halfway.
+pub const MAX_STEPS: usize = 16;
+/// The closing turn's note when Theo runs out of steps: he says what he did and what is left.
+const OUT_OF_STEPS: &str = "Llegaste al tope de pasos de este pedido. Sin usar herramientas, contá en una o dos frases qué hiciste y qué falta, y decí que si quiere que sigas te escriba «seguí».";
+/// What the person sees if even the closing turn fails.
+const OUT_OF_STEPS_FALLBACK: &str = "Hice varios pasos; contame si querés que siga.";
 /// The read-only tool every tool offers: what the document looks like now.
 pub const READ: &str = "leer_documento";
 
@@ -77,6 +82,7 @@ fn run(
     tools.extend(ask.actions.iter().cloned());
     for _ in 0..MAX_STEPS {
         if stop.load(Ordering::SeqCst) {
+            messages.push(json!({"role": "assistant", "content": "Frené."}));
             return Ok("Frené.".into());
         }
         let mut body_messages = vec![json!({"role": "system", "content": ask.system})];
@@ -104,7 +110,20 @@ fn run(
             messages.push(json!({"role": "tool", "tool_call_id": call.id, "content": result.to_string()}));
         }
     }
-    Ok("Hice varios pasos; contame si querés que siga.".into())
+    // Out of steps: one closing turn in words, kept in the conversation so the person sees it and
+    // «seguí» picks up from there.
+    let mut body_messages = vec![json!({"role": "system", "content": ask.system})];
+    body_messages.extend(messages.iter().cloned());
+    body_messages.push(json!({"role": "system", "content": OUT_OF_STEPS}));
+    let body = json!({"messages": body_messages, "tools": tools, "tool_choice": "none", "stream": true});
+    let text = match complete(transport, &ask.url, &ask.tool, keys, &body, ask.key_wait, &mut |text| {
+        let _ = tx.send(ToUi::Text(text.to_string()));
+    }) {
+        Ok(reply) if reply.tool_calls.is_empty() && !reply.text.trim().is_empty() => reply.text,
+        _ => OUT_OF_STEPS_FALLBACK.to_string(),
+    };
+    messages.push(json!({"role": "assistant", "content": text}));
+    Ok(text)
 }
 
 #[cfg(test)]
@@ -221,5 +240,43 @@ mod tests {
             }
         };
         assert_eq!(result.unwrap(), "No borré nada.");
+    }
+
+    #[test]
+    fn out_of_steps_theo_closes_in_words_and_the_person_sees_it() {
+        let mut turns: Vec<Vec<Value>> = (0..MAX_STEPS).map(|i| vec![call(&format!("c{i}"), "format.set", "{}")]).collect();
+        turns.push(vec![text("Hice las capas y los muros; faltan las cotas. Escribime «seguí».")]);
+        let model = Arc::new(Model(Mutex::new(turns), Mutex::new(vec![])));
+        let run = start(ask(), model.clone(), keys());
+        let (messages, result) = loop {
+            match run.rx.recv().unwrap() {
+                ToUi::Act { reply, .. } => reply.send(json!({"ok": true})).unwrap(),
+                ToUi::Text(_) => {}
+                ToUi::Done { messages, result } => break (messages, result),
+            }
+        };
+        assert!(result.unwrap().contains("faltan las cotas"));
+        let last = messages.last().unwrap();
+        assert_eq!(last["role"], "assistant");
+        assert!(last["content"].as_str().unwrap().contains("seguí"), "the closing words stay in the conversation");
+        let bodies = model.1.lock().unwrap();
+        assert_eq!(bodies.len(), MAX_STEPS + 1);
+        assert_eq!(bodies[MAX_STEPS]["tool_choice"], "none", "the closing turn cannot act");
+    }
+
+    #[test]
+    fn out_of_steps_with_a_failed_closing_turn_still_says_so() {
+        let mut turns: Vec<Vec<Value>> = (0..MAX_STEPS).map(|i| vec![call(&format!("c{i}"), "format.set", "{}")]).collect();
+        turns.push(vec![call("cx", "format.set", "{}")]);
+        let model = Arc::new(Model(Mutex::new(turns), Mutex::new(vec![])));
+        let run = start(ask(), model.clone(), keys());
+        let messages = loop {
+            match run.rx.recv().unwrap() {
+                ToUi::Act { reply, .. } => reply.send(json!({"ok": true})).unwrap(),
+                ToUi::Text(_) => {}
+                ToUi::Done { messages, .. } => break messages,
+            }
+        };
+        assert_eq!(messages.last().unwrap()["content"], OUT_OF_STEPS_FALLBACK);
     }
 }
