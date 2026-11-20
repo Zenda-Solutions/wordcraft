@@ -541,6 +541,27 @@ impl Recovery {
         self.due = now + INTERVAL;
         Ok(())
     }
+    /// Queues a copy of the document right away, ignoring the interval, and waits for it (and for
+    /// any job under way first). Nothing is written for a clean or password-protected document.
+    pub fn save_now(&mut self, s: &Session) -> Result<(), String> {
+        if self.busy {
+            let e = self.rx.recv().map_err(|e| e.to_string())?;
+            self.documents = e.documents;
+            self.busy = false;
+            self.ready = true;
+        }
+        self.revision = None;
+        let now = Instant::now();
+        self.due = now;
+        self.tick(s, now)?;
+        if self.busy {
+            let e = self.rx.recv().map_err(|e| e.to_string())?;
+            self.documents = e.documents;
+            self.busy = false;
+            e.outcome.map(|_| ())?;
+        }
+        Ok(())
+    }
     pub fn document_is(&self, document: u64) -> bool {
         self.document == Some(document)
     }
