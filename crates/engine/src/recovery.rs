@@ -94,6 +94,17 @@ impl Session {
     /// otherwise a save just before close can race the process exiting before a now-redundant
     /// recovery copy actually gets removed, so the next launch wrongly offers to recover a
     /// document that was in fact saved cleanly.
+    /// Writes a recovery copy of the document now, if it has changes, and waits until it is on
+    /// disk. For a host about to exit without a clean close (its graphics device was lost).
+    pub fn save_recovery_now(&mut self) {
+        #[cfg(not(target_arch = "wasm32"))]
+        if let Some(mut r) = self.recovery.take() {
+            if let Err(e) = r.save_now(self) {
+                log::warn!("recovery: {e}");
+            }
+            self.recovery = Some(r);
+        }
+    }
     pub fn finish_recovery(&mut self) {
         #[cfg(not(target_arch = "wasm32"))]
         if let Some(mut r) = self.recovery.take() {
