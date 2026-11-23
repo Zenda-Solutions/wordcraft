@@ -887,6 +887,24 @@ mod panel_preview {
         img.save(std::path::Path::new(&dir).join(format!("{name}.png"))).expect("save");
     }
 
+    /// A screen reader finds the chat: its title, each message, the box and the buttons are nodes in the
+    /// AccessKit tree, the same one Windows' UI Automation reads (Store E2E of Work 0.2.28).
+    #[test]
+    fn a_screen_reader_reads_the_chat() {
+        use egui_kittest::kittest::Queryable;
+        let mut chat = chat(talk());
+        let mut host = Cad;
+        let mut h = egui_kittest::Harness::builder().with_size(egui::vec2(340.0, 640.0)).build_ui(move |ui| {
+            chat.ui(ui, &mut host);
+        });
+        h.run_steps(3);
+        assert!(h.query_all_by_label_contains("Theo").next().is_some(), "the title");
+        assert!(h.query_all_by_label_contains("habitación de 4 x 3 m").next().is_some(), "the person's message");
+        assert!(h.query_all_by_label_contains("Rectángulo de 4000 x 3000 mm").next().is_some(), "Theo's answer");
+        assert!(h.query_by_label("Escribile a Theo").is_some(), "the message box");
+        assert!(h.query_by_label("Cerrar el chat").is_some(), "the close button");
+    }
+
     #[test]
     #[ignore = "writes PNGs; run by hand"]
     fn panel_preview() {
