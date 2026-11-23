@@ -588,7 +588,7 @@ pub fn status_bar(app: &mut WordApp, ui: &mut Ui) {
                     resp
                 };
                 if st(ui, &crate::i18n::fmt(tl!("Page {page} of {pages}"), &[("page", &page.to_string()), ("pages", &l.pages.len().to_string())]))
-                    .on_hover_text(tl!("Go To (⌘⌥G)"))
+                    .on_hover_text(crate::widgets::without_mac_keys(tl!("Go To (⌘⌥G)"), cfg!(target_os = "macos")))
                     .clicked()
                 {
                     let _ = app.run("ui.dialog", json!({"name": "goto"}));

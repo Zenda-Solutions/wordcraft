@@ -43,6 +43,7 @@ pub fn key_text(sc: &str) -> String {
 /// and, while the control is off, why. Empty parts are left out; `reason` falls back to a generic
 /// line when the command gave none.
 pub(crate) fn tooltip_lines(label: &str, shortcut: &str, desc: &str, disabled: Option<&str>) -> (String, Vec<String>) {
+    let label = without_mac_keys(label, cfg!(target_os = "macos"));
     let title = if shortcut.is_empty() || names_a_shortcut(label) { label.to_string() } else { format!("{label} ({shortcut})") };
     let mut notes = Vec::new();
     if !desc.is_empty() {
@@ -60,6 +61,19 @@ fn names_a_shortcut(label: &str) -> bool {
         return false;
     };
     ["⌘", "⌃", "⌥", "⇧", "Ctrl+", "Alt+", "Shift+", "Mod+"].iter().any(|m| inner.contains(m))
+}
+
+/// A label that names a Mac key in its parentheses («Pegar (⌘V)», from a catalog written on a Mac) loses
+/// it elsewhere: on Windows the real shortcut is appended from the keymap instead (Zenda's Store E2E of
+/// Work 0.2.28 found «Pegar (⌘V)» in Texto, as the tooltip and the accessible name).
+pub(crate) fn without_mac_keys(label: &str, mac: bool) -> &str {
+    if mac {
+        return label;
+    }
+    match label.strip_suffix(')').and_then(|l| l.rsplit_once(" (")) {
+        Some((head, keys)) if ["⌘", "⌃", "⌥"].iter().any(|m| keys.contains(m)) => head,
+        _ => label,
+    }
 }
 
 /// `text` with its first letter in capitals (the engine's reasons are lower case).
@@ -401,6 +415,7 @@ pub fn menu_button(
     let reason = if on { None } else { Some(app.session.why_disabled(id).unwrap_or("")) };
     let (title, notes) = tooltip_lines(tip, &shortcut_text(app, id), "", reason);
     show_hint(&resp, &title, &notes);
+    let tip = without_mac_keys(tip, cfg!(target_os = "macos"));
     resp.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, on, tip));
     if !on {
         return;
@@ -1531,9 +1546,23 @@ mod tests {
 
     #[test]
     fn tooltip_lines_do_not_repeat_a_shortcut_already_in_the_label() {
-        assert_eq!(tooltip_lines("Paste (⌘V)", "⌘V", "", None).0, "Paste (⌘V)");
+        if cfg!(target_os = "macos") {
+            assert_eq!(tooltip_lines("Paste (⌘V)", "⌘V", "", None).0, "Paste (⌘V)");
+        }
         assert_eq!(tooltip_lines("Paste (Ctrl+V)", "Ctrl+V", "", None).0, "Paste (Ctrl+V)");
         assert_eq!(tooltip_lines("Font (dialog)", "Ctrl+D", "", None).0, "Font (dialog) (Ctrl+D)");
+    }
+
+    #[test]
+    fn a_mac_key_in_a_label_goes_away_outside_macos() {
+        assert_eq!(without_mac_keys("Pegar (⌘V)", false), "Pegar");
+        assert_eq!(without_mac_keys("Ir a (⌘⌥G)", false), "Ir a");
+        assert_eq!(without_mac_keys("Pegar (⌘V)", true), "Pegar (⌘V)");
+        assert_eq!(without_mac_keys("Pegar (Ctrl+V)", false), "Pegar (Ctrl+V)");
+        assert_eq!(without_mac_keys("Fuente (diálogo)", false), "Fuente (diálogo)");
+        if !cfg!(target_os = "macos") {
+            assert_eq!(tooltip_lines("Pegar (⌘V)", "Ctrl+V", "", None).0, "Pegar (Ctrl+V)");
+        }
     }
 
     #[test]

@@ -16,6 +16,7 @@ mod clipboard;
 mod control_server;
 mod default_apps;
 mod file_dialogs;
+mod gpu;
 #[cfg(any(target_os = "windows", target_os = "macos", test))]
 mod graphics;
 mod logging;
@@ -43,6 +44,16 @@ struct App(
 
 impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        // The graphics device is gone (`gpu`): keep the document and leave, as on_exit would.
+        if gpu::lost() {
+            self.0.session.save_recovery_now();
+            print::finish_pending_jobs();
+            save_prefs(&self.0);
+            if let Some(key_file) = &self.2 {
+                key_file.remove();
+            }
+            std::process::exit(gpu::EXIT_GPU_LOST);
+        }
         #[cfg(target_os = "macos")]
         apple_events::poll(&self.4, &mut self.0, ctx);
         self.0.logic(ctx);
@@ -421,6 +432,7 @@ fn main() -> eframe::Result {
         "WordCraft",
         options,
         Box::new(move |cc| {
+            gpu::install(cc);
             // The system region picks the new document's paper, the units and the decimal
             // separator (#838).
             let region = region::system();
