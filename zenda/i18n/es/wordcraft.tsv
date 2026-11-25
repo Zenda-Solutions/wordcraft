@@ -8,7 +8,6 @@
 	Built-in Heading styles	Estilos de título integrados
 	Continue without restoring	Continuar sin restaurar
 	Couldn't save {name}, so it is still open and nothing was lost: {error}	No se pudo guardar {name}; sigue abierto y no se perdió nada: {error}
-	Crop on the page works on unturned pictures: set Rotation to 0° first, or use the crop boxes	Recortar en la página funciona con imágenes sin girar: ponga primero el giro en 0° o use los cuadros de recorte
 	Current Document	Documento actual
 	Discard the recovery copy of {name}?	¿Descartar la copia de recuperación de {name}?
 	Discard…	Descartar…
@@ -48,3 +47,25 @@
 	Send it to someone in Work, a group or an email	Mandalo a alguien de Work, a un grupo o por mail
 	Zenda's build for Work, based on WordCraft by the ArtCraft team.\nA free, open-source word processor written in Rust.	La versión de Zenda para Work, basada en WordCraft del equipo de ArtCraft.\nUn procesador de texto libre y de código abierto, escrito en Rust.
 	Zenda's changes: github.com/Zenda-Solutions/wordcraft	Cambios de Zenda: github.com/Zenda-Solutions/wordcraft
+# Voseo, as Work speaks (Zenda's E2E of Work 0.2.30 found «¿Quieres guardar los cambios…?»), and
+# the language names the status bar shows.
+	Click a border between two cells to merge them. Esc stops.	Hacé clic en un borde entre dos celdas para combinarlas. Esc termina.
+	Click an item to paste it.	Hacé clic en un elemento para pegarlo.
+	Click level to modify:	Hacé clic en el nivel que quieras modificar:
+	Click to switch back to inserting	Hacé clic para volver a insertar
+	Do you want to save changes to {name}?	¿Querés guardar los cambios en {name}?
+	Pick a field from the list	Elegí un campo de la lista
+	Save a copy in another format. Printing goes through a PDF you can print from any viewer.	Guardá una copia en otro formato. La impresión se hace a través de un PDF que podés imprimir desde cualquier visor.
+	Select a printer	Seleccioná una impresora
+	Select text, then tick who can still edit it.	Seleccioná texto y marcá quién puede seguir editándolo.
+	Type +2 or -1 to move from the page you are on.	Escribí +2 o -1 para moverte desde la página actual.
+	Type a command, e.g. "insert table"	Escribí un comando, p. ej. «insertar tabla»
+	Type a size in any unit, such as 5 cm or 300 px. The other side follows, so the picture keeps its proportions.	Escribí un tamaño en cualquier unidad, como 5 cm o 300 px. El otro lado se ajusta, así que la imagen conserva sus proporciones.
+	Type at least one recipient.	Escribí al menos un destinatario.
+	Type the categories down the side and a column of values per series.	Escribí las categorías en el lateral y una columna de valores por serie.
+	Type the field's name and its switches, for example PAGE \* roman.	Escribí el nombre del campo y sus modificadores, por ejemplo PAGE \* roman.
+	Type the password to stop the protection.	Escribí la contraseña para detener la protección.
+	Type the recipients, or load them from a file.	Escribí los destinatarios o cargalos desde un archivo.
+	{name} already exists. Choose Save again to replace it.	{name} ya existe. Elegí Guardar otra vez para reemplazarlo.
+	Spanish (Argentina)	Español (Argentina)
+	Crop on the page works on unturned pictures: set Rotation to 0° first, or use the crop boxes	Recortar en la página funciona con imágenes sin girar: poné primero el giro en 0° o usá los cuadros de recorte
